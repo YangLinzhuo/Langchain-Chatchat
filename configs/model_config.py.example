@@ -95,13 +95,13 @@ EMBEDDING_MODEL = "m3e-base" # 可以尝试最新的嵌入式sota模型：bge-la
 
 
 # Embedding 模型运行设备。设为"auto"会自动检测，也可手动设定为"cuda","mps","cpu"其中之一。
-EMBEDDING_DEVICE = "auto"
+EMBEDDING_DEVICE = "cpu"
 
 # LLM 名称
-LLM_MODEL = "chatglm2-6b"
+LLM_MODEL = "mindspore-api"
 
 # LLM 运行设备。设为"auto"会自动检测，也可手动设定为"cuda","mps","cpu"其中之一。
-LLM_DEVICE = "auto"
+LLM_DEVICE = "cpu"
 
 # 历史对话轮数
 HISTORY_LEN = 3
@@ -202,6 +202,13 @@ ONLINE_LLM_MODEL = {
         "api_key": "",
         "secret_key": "",
         "provider": "BaiChuanWorker",
+    },
+    # MindSpore API
+    "mindspore-api": {
+        "version": "LLaMA2-7B",
+        "api_key": "",
+        "secret_key": "",
+        "provider": "MindSporeWorker",
     },
 }
 

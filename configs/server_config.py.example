@@ -11,6 +11,12 @@ OPEN_CROSS_DOMAIN = False
 # 各服务器默认绑定host。如改为"0.0.0.0"需要修改下方所有XX_SERVER的host
 DEFAULT_BIND_HOST = "0.0.0.0" if sys.platform != "win32" else "127.0.0.1"
 
+# MindSpore api server
+MS_SERVER = {
+    "host": "10.0.0.134",
+    "port": 1234,
+}
+
 # webui.py server
 WEBUI_SERVER = {
     "host": DEFAULT_BIND_HOST,
@@ -96,9 +102,9 @@ FSCHAT_MODEL_WORKERS = {
     #    "device": "cpu",
     # },
 
-    "zhipu-api": { # 请为每个要运行的在线API设置不同的端口
-        "port": 21001,
-    },
+    # "zhipu-api": { # 请为每个要运行的在线API设置不同的端口
+    #   "port": 21001,
+    # },
     # "minimax-api": {
     #     "port": 21002,
     # },
@@ -117,6 +123,10 @@ FSCHAT_MODEL_WORKERS = {
     # "baichuan-api": {
     #     "port": 21007,
     # },
+
+    "mindspore-api": {
+        "port": 21008,
+    }
 }
 
 # fastchat multi model worker server
