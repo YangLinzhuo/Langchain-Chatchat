@@ -42,10 +42,9 @@ def request_mindspore_api(
     INF_URL = f'http://{MS_SERVER["host"]}:{MS_SERVER["port"]}'
     config = get_model_worker_config(model_name)
     version = version or config.get("version")
-    version_url = config.get("version_url")
+    model_type = config.get("model_type")
 
     # TODO: replace model_type with configurable parameter
-    model_type = "llama2"
     url = f"{INF_URL}/models/{model_type}"
 
     stream = True
@@ -55,11 +54,12 @@ def request_mindspore_api(
         temperature=temperature,
         top_k=3,
         top_p=1,
-        max_new_tokens=300,
+        max_new_tokens=512,
         return_full_text=False,
     )
 
-    inputs = messages[0]
+    # The last message is the newest user input
+    inputs = messages[-1]
     role = inputs['role']
     content = inputs['content']
 
