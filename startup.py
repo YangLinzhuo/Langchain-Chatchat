@@ -426,7 +426,11 @@ def run_api_server(started_event: mp.Event = None):
     from server.api import create_app
     import uvicorn
     from server.utils import set_httpx_config
+    from server.knowledge_base.kb_cache.base import embeddings_pool
     set_httpx_config()
+    print(f"预加载 Embedding 模型")
+    embeddings_pool.load_embeddings(EMBEDDING_MODEL, embedding_device())
+    print(f"预加载 Embedding 模型完毕")
 
     app = create_app()
     _set_app_event(app, started_event)
@@ -642,14 +646,14 @@ async def start_main_server():
             target=run_controller,
             name=f"controller",
             kwargs=dict(log_level=log_level, started_event=controller_started),
-            # daemon=True,
+            daemon=True,
         )
         processes["controller"] = process
 
         process = Process(
             target=run_openai_api,
             name=f"openai_api",
-            # daemon=True,
+            daemon=True,
         )
         processes["openai_api"] = process
 
@@ -668,7 +672,7 @@ async def start_main_server():
                                 log_level=log_level,
                                 q=queue,
                                 started_event=e),
-                    # daemon=True,
+                    daemon=True,
                 )
                 processes["model_worker"][model_name] = process
 
@@ -688,7 +692,7 @@ async def start_main_server():
                                 log_level=log_level,
                                 q=queue,
                                 started_event=e),
-                    # daemon=True,
+                    daemon=True,
                 )
                 processes["online_api"][model_name] = process
 
@@ -698,7 +702,7 @@ async def start_main_server():
             target=run_api_server,
             name=f"API Server",
             kwargs=dict(started_event=api_started),
-            # daemon=True,
+            daemon=False,  # To enable parallel model compilation
         )
         processes["api"] = process
 
@@ -708,7 +712,7 @@ async def start_main_server():
             target=run_webui,
             name=f"WEBUI Server",
             kwargs=dict(started_event=webui_started),
-            # daemon=True,
+            daemon=True,
         )
         processes["webui"] = process
 
@@ -795,7 +799,7 @@ async def start_main_server():
                                             log_level=log_level,
                                             q=queue,
                                             started_event=e),
-                                # daemon=True,
+                                daemon=True,
                             )
                             process.start()
                             process.name = f"{process.name} ({process.pid})"

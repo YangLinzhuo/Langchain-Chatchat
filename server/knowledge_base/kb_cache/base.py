@@ -2,7 +2,6 @@ from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.embeddings import HuggingFaceBgeEmbeddings
 from langchain.embeddings.base import Embeddings
-from langchain.schema import Document
 import threading
 from configs import (EMBEDDING_MODEL, CHUNK_SIZE, CACHED_VS_NUM,
                     logger, log_verbose)
@@ -121,7 +120,18 @@ class EmbeddingsPool(CachePool):
             self.set(key, item)
             with item.acquire(msg="初始化"):
                 self.atomic.release()
-                if model == "text-embedding-ada-002":  # openai text-embedding-ada-002
+                if model == 'mindspore_embedding':
+                   from mindformers import BertForEmbedding, BertForPreTraining, BertTokenizer
+                   from embeddings.bert import BertEmbedding
+                   tokenizer = BertTokenizer.from_pretrained('bert_base_uncased')
+                   model_bak = BertForPreTraining.from_pretrained('bert_base_uncased')
+                   model = BertForEmbedding.from_pretrained('./checkpoint_download/bert')
+                   embeddings = BertEmbedding(tokenizer, model, padding='max_length',
+                                              max_length=model.config.seq_length, batch_size=1)
+                   # Invoke model compilation
+                   result = embeddings.embed_query("A")
+                   print(f"Query: {result}")
+                elif model == "text-embedding-ada-002":  # openai text-embedding-ada-002
                     embeddings = OpenAIEmbeddings(openai_api_key=get_model_path(model), chunk_size=CHUNK_SIZE)
                 elif 'bge-' in model:
                     if 'zh' in model:
@@ -135,11 +145,12 @@ class EmbeddingsPool(CachePool):
                         query_instruction = ""
                     embeddings = HuggingFaceBgeEmbeddings(model_name=get_model_path(model),
                                                           model_kwargs={'device': device},
-                                                          query_instruction=query_instruction)             
+                                                          query_instruction=query_instruction)
                     if model == "bge-large-zh-noinstruct":  # bge large -noinstruct embedding
                         embeddings.query_instruction = ""
                 else:
                     embeddings = HuggingFaceEmbeddings(model_name=get_model_path(model), model_kwargs={'device': device})
+                print("model:==================", model)
                 item.obj = embeddings
                 item.finish_loading()
         else:
@@ -148,3 +159,4 @@ class EmbeddingsPool(CachePool):
 
 
 embeddings_pool = EmbeddingsPool(cache_num=1)
+
