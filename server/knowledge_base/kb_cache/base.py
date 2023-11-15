@@ -4,7 +4,7 @@ from langchain.embeddings import HuggingFaceBgeEmbeddings
 from langchain.embeddings.base import Embeddings
 import threading
 from configs import (EMBEDDING_MODEL, CHUNK_SIZE, CACHED_VS_NUM,
-                    logger, log_verbose)
+                     logger, log_verbose)
 from server.utils import embedding_device, get_model_path
 from contextlib import contextmanager
 from collections import OrderedDict
@@ -100,7 +100,7 @@ class CachePool:
         else:
             return cache
 
-    def load_kb_embeddings(self, kb_name: str=None, embed_device: str = embedding_device()) -> Embeddings:
+    def load_kb_embeddings(self, kb_name: str = None, embed_device: str = embedding_device()) -> Embeddings:
         from server.db.repository.knowledge_base_repository import get_kb_detail
 
         kb_detail = get_kb_detail(kb_name=kb_name)
@@ -120,17 +120,16 @@ class EmbeddingsPool(CachePool):
             self.set(key, item)
             with item.acquire(msg="初始化"):
                 self.atomic.release()
-                if model == 'mindspore_embedding':
-                   from mindformers import BertForEmbedding, BertForPreTraining, BertTokenizer
-                   from embeddings.bert import BertEmbedding
-                   tokenizer = BertTokenizer.from_pretrained('bert_base_uncased')
-                   model_bak = BertForPreTraining.from_pretrained('bert_base_uncased')
-                   model = BertForEmbedding.from_pretrained('./checkpoint_download/bert')
-                   embeddings = BertEmbedding(tokenizer, model, padding='max_length',
-                                              max_length=model.config.seq_length, batch_size=1)
-                   # Invoke model compilation
-                   result = embeddings.embed_query("A")
-                   print(f"Query: {result}")
+                if model == 'ms-bert-base':
+                    from mindformers import BertTokenizer
+                    from embeddings.bert import BertEmbedding, BertForEmbedding
+                    tokenizer = BertTokenizer.from_pretrained('bert_base_uncased')
+                    model = BertForEmbedding.from_pretrained(get_model_path(model))
+                    embeddings = BertEmbedding(tokenizer, model, padding='max_length',
+                                               max_length=model.config.seq_length, batch_size=1)
+                    # Invoke model compilation
+                    result = embeddings.embed_query("A")
+                    print(f"Query: {result}")
                 elif model == "text-embedding-ada-002":  # openai text-embedding-ada-002
                     embeddings = OpenAIEmbeddings(openai_api_key=get_model_path(model), chunk_size=CHUNK_SIZE)
                 elif 'bge-' in model:
@@ -149,7 +148,8 @@ class EmbeddingsPool(CachePool):
                     if model == "bge-large-zh-noinstruct":  # bge large -noinstruct embedding
                         embeddings.query_instruction = ""
                 else:
-                    embeddings = HuggingFaceEmbeddings(model_name=get_model_path(model), model_kwargs={'device': device})
+                    embeddings = HuggingFaceEmbeddings(model_name=get_model_path(model),
+                                                       model_kwargs={'device': device})
                 print("model:==================", model)
                 item.obj = embeddings
                 item.finish_loading()
@@ -159,4 +159,3 @@ class EmbeddingsPool(CachePool):
 
 
 embeddings_pool = EmbeddingsPool(cache_num=1)
-

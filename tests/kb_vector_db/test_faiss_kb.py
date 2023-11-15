@@ -4,7 +4,7 @@ from server.knowledge_base.utils import KnowledgeFile
 
 kbService = FaissKBService("test")
 test_kb_name = "test"
-test_file_name = "README.md"
+test_file_name = "README_zh.md"
 testKnowledgeFile = KnowledgeFile(test_file_name, test_kb_name)
 search_content = "如何启动api服务"
 

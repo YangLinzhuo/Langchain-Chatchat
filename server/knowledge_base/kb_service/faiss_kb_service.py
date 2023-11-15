@@ -106,7 +106,7 @@ class FaissKBService(KBService):
 
 if __name__ == '__main__':
     faissService = FaissKBService("test")
-    faissService.add_doc(KnowledgeFile("README.md", "test"))
-    faissService.delete_doc(KnowledgeFile("README.md", "test"))
+    faissService.add_doc(KnowledgeFile("README_zh.md", "test"))
+    faissService.delete_doc(KnowledgeFile("README_zh.md", "test"))
     faissService.do_drop_kb()
     print(faissService.search_docs("如何启动api服务"))

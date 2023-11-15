@@ -100,9 +100,9 @@ if __name__ == '__main__':
 
     Base.metadata.create_all(bind=engine)
     milvusService = MilvusKBService("test")
-    # milvusService.add_doc(KnowledgeFile("README.md", "test"))
+    # milvusService.add_doc(KnowledgeFile("README_zh.md", "test"))
 
     print(milvusService.get_doc_by_id("444022434274215486"))
-    # milvusService.delete_doc(KnowledgeFile("README.md", "test"))
+    # milvusService.delete_doc(KnowledgeFile("README_zh.md", "test"))
     # milvusService.do_drop_kb()
     # print(milvusService.search_docs("如何启动api服务"))
