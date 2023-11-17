@@ -2,7 +2,6 @@ from server.model_workers.base import ApiModelWorker
 from fastchat import conversation as conv
 from configs.model_config import TEMPERATURE
 from server.utils import get_model_worker_config, get_httpx_client
-import sys
 import json
 from typing import List, Literal, Dict
 from configs import MS_SERVER
@@ -23,7 +22,6 @@ class Parameters(BaseModel):
     return_full_text: bool = True
 
 
-
 class ClientRequest(BaseModel):
     # Prompt
     inputs: str
@@ -33,7 +31,7 @@ class ClientRequest(BaseModel):
     stream: bool = False
 
 
-def request_mindspore_api(
+async def request_mindspore_api(
     messages: List[Dict[str, str]],
     temperature: float = TEMPERATURE,
     model_name: str = "mindspore-api",
@@ -75,28 +73,29 @@ def request_mindspore_api(
     cookies = None
     timeout = 30000
 
-    with get_httpx_client() as client:
-        # with client.stream("POST", url, headers=headers, json=payload) as response:
-        #     for line in response.a:
-        response = client.post(
-            url,
-            json=payload.dict(),
-            headers=headers,
-            cookies=cookies,
-            timeout=timeout,
-        )
+    async with get_httpx_client(use_async=True) as client:
         if stream:
-            for byte_payload in response.iter_lines():
-                if byte_payload == b"\n":
-                    continue
-                payload = byte_payload
-                print(payload)
-                if payload.startswith("data:"):
-                    # Decode payload
-                    json_payload = json.loads(payload.lstrip("data:").rstrip("/n"))
-                    yield json_payload
+            async with client.stream('POST', url, json=payload.dict(), headers=headers,
+                                     cookies=cookies, timeout=timeout) as response:
+                for byte_payload in response.aiter_lines():
+                    if byte_payload == b"\n":
+                        continue
+                    payload = byte_payload
+                    print(payload)
+                    if payload.startswith("data:"):
+                        # Decode payload
+                        json_payload = json.loads(payload.lstrip("data:").rstrip("/n"))
+                        yield json_payload
         else:
+            response = await client.post(
+                url,
+                json=payload.dict(),
+                headers=headers,
+                cookies=cookies,
+                timeout=timeout,
+            )
             yield response.json()
+
 
 class MindSporeWorker(ApiModelWorker):
     # BASE_URL = f'http://{MS_SERVER["host"]}:{MS_SERVER["port"]}'
@@ -135,12 +134,12 @@ class MindSporeWorker(ApiModelWorker):
             return "\n\n"
         return text.replace('\u2581', ' ')
 
-    def generate_stream_gate(self, params):
+    async def generate_stream_gate(self, params):
         messages = self.prompt_to_messages(params["prompt"])
         full_text = ""
-        for resp in request_mindspore_api(messages,
-                                          temperature=params.get("temperature"),
-                                          model_name=self.model_names[0]):
+        async for resp in request_mindspore_api(messages,
+                                                temperature=params.get("temperature"),
+                                                model_name=self.model_names[0]):
             if 'token' in resp:
                 text = self.text_postprocess(resp['token']['text'])
                 full_text += text
