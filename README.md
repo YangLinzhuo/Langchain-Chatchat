@@ -4,12 +4,14 @@
 适配代码。关于 LangChain 的基本配置和依赖，请参看 README_zh.md 或者 README_en.md。本说明主要介绍支持 MindSpore 框架推理相关的
 主要修改点。
 
+LangChain + MS-Serving 流程示意图：
+
+[](img/langchain+ms-serving.png)
+
 
 # Bert Embedding 模型
 
-本仓库使用 Bert-base 作为基础的 Embedding 模型，而非原项目中默认使用的 LLM 模型 
-[THUDM/ChatGLM2-6B](https://huggingface.co/THUDM/chatglm2-6b) 和 Embedding 模型 
-[moka-ai/m3e-base](https://huggingface.co/moka-ai/m3e-base)。
+本仓库使用 Bert-base 作为基础的 Embedding 模型，而非原项目中默认使用的 [moka-ai/m3e-base](https://huggingface.co/moka-ai/m3e-base)。
 
 
 该模型依赖 [mindformers 套件](https://gitee.com/mindspore/mindformers)，需要按照教程安装 `mindformers` 套件。
