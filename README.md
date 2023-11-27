@@ -6,7 +6,8 @@
 
 LangChain + MS-Serving 流程示意图：
 
-[](img/langchain+ms-serving.png)
+![langchain+ms流程](img/langchain+ms-serving.png)
+
 
 
 # Bert Embedding 模型
