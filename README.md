@@ -4,13 +4,16 @@
 适配代码。关于 LangChain 的基本配置和依赖，请参看 README_zh.md 或者 README_en.md。本说明主要介绍支持 MindSpore 框架推理相关的
 主要修改点。
 
-LangChain + MS-Serving 流程示意图：
+LangChain 和 MS-Serving 服务是解耦的两个服务。用户输入 Query 后，LangChain 框架会经过一定处理，生成对应的 Prompt，并向 MS-Serving
+服务发送包含 Prompt 的请求。MS-Serving 服务收到请求后，将请求分发给对应后端部署的大模型，获取生成的结果后，通过 Response 返回给
+LangChain 框架，最终将结果显示给用户。
 
 ![langchain+ms流程](img/langchain+ms-serving.png)
 
-LangChain 和 MS-Serving 服务是解耦的两个服务。用户输入 Query 后，LangChain 框架会经过一定处理，生成对应的 Prompt，并向 MS-Serving
-服务发送包含 Prompt 的请求。MS-Serving 服务收到请求后，提出 Prompt 并传递给后端部署的大模型，获取生成的结果后，通过 Response 返回给
-LangChain 框架，最终将结果显示给用户。
+以下是 LangChain + MS-Serving 知识库详细流程示意图：
+
+![langchain+ms知识库流程](img/langchain+ms-serving+knowledgebase.png)
+
 
 # Bert Embedding 模型
 
