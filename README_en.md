@@ -1,6 +1,6 @@
 ![](img/logo-long-chatchat-trans-v2.png)
 
-🌍 [中文文档](README_zh.md)
+🌍 [中文文档](README.md)
 
 📃 **LangChain-Chatchat** (formerly Langchain-ChatGLM):
 
@@ -11,16 +11,16 @@ LLM API.
 
 ## Table of Contents
 
-- [Introduction](README_zh.md#Introduction)
-- [Pain Points Addressed](README_zh.md#Pain-Points-Addressed)
-- [Quick Start](README_zh.md#Quick-Start)
-    - [1. Environment Setup](README_zh.md#1-Environment-Setup)
-    - [2. Model Download](README_zh.md#2-Model-Download)
-    - [3. Initialize Knowledge Base and Configuration Files](README_zh.md#3-Initialize-Knowledge-Base-and-Configuration-Files)
-    - [4. One-Click Startup](README_zh.md#4-One-Click-Startup)
-    - [5. Startup Interface Examples](README_zh.md#5-Startup-Interface-Examples)
-- [Contact Us](README_zh.md#Contact-Us)
-- [List of Partner Organizations](README_zh.md#List-of-Partner-Organizations)
+- [Introduction](README.md#Introduction)
+- [Pain Points Addressed](README.md#Pain-Points-Addressed)
+- [Quick Start](README.md#Quick-Start)
+    - [1. Environment Setup](README.md#1-Environment-Setup)
+    - [2. Model Download](README.md#2-Model-Download)
+    - [3. Initialize Knowledge Base and Configuration Files](README.md#3-Initialize-Knowledge-Base-and-Configuration-Files)
+    - [4. One-Click Startup](README.md#4-One-Click-Startup)
+    - [5. Startup Interface Examples](README.md#5-Startup-Interface-Examples)
+- [Contact Us](README.md#Contact-Us)
+- [List of Partner Organizations](README.md#List-of-Partner-Organizations)
 
 ## Introduction
 
