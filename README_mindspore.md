@@ -8,11 +8,11 @@ LangChain 和 MS-Serving 服务是解耦的两个服务。用户输入 Query 后
 服务发送包含 Prompt 的请求。MS-Serving 服务收到请求后，将请求分发给对应后端部署的大模型，获取生成的结果后，通过 Response 返回给
 LangChain 框架，最终将结果显示给用户。
 
-![langchain+ms流程](img/langchain+ms-serving.png)
+![langchain+ms流程](../img/langchain+ms-serving.png)
 
 以下是 LangChain + MS-Serving 知识库详细流程示意图：
 
-![langchain+ms知识库流程](img/langchain+ms-serving+knowledgebase.png)
+![langchain+ms知识库流程](../img/langchain+ms-serving+knowledgebase.png)
 
 
 # Bert Embedding 模型
