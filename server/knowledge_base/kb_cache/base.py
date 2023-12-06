@@ -148,6 +148,9 @@ class EmbeddingsPool(CachePool):
                                                           query_instruction=query_instruction)             
                     if model == "bge-large-zh-noinstruct":  # bge large -noinstruct embedding
                         embeddings.query_instruction = ""
+                elif model.startswith('ms-'):
+                    from embeddings.mindspore import get_mindspore_embedding
+                    embeddings = get_mindspore_embedding(model, device)
                 else:
                     from langchain.embeddings.huggingface import HuggingFaceEmbeddings
                     embeddings = HuggingFaceEmbeddings(model_name=get_model_path(model), model_kwargs={'device': device})

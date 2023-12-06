@@ -1,0 +1,104 @@
+from configs.model_config import MODEL_PATH, ONLINE_LLM_MODEL
+from configs.server_config import FSCHAT_MODEL_WORKERS, DEFAULT_BIND_HOST
+from configs.prompt_config import PROMPT_TEMPLATES
+
+# ============================================================================ #
+# 本配置文件中的配置会覆盖或者更新其他配置文件中的某些配置                             #
+# 对于值类型，会直接覆盖；对于容器类型，需要从其他文件导入，使用 global 修饰，然后更新    #
+# ============================================================================ #
+
+# ===============================
+# Dynamically update model config
+# ===============================
+
+global MODEL_PATH
+MS_MODEL_PATH = {
+    "embed_model": {
+        "ms-bert-base": "path to bert base checkpoint"
+    },
+}
+MODEL_PATH["embed_model"].update(MS_MODEL_PATH["embed_model"])
+
+
+# 选用的 Embedding 名称
+MS_EMBEDDING_MODEL = "ms-bert-base"
+EMBEDDING_MODEL = MS_EMBEDDING_MODEL
+
+
+# Embedding 模型运行设备。设为"auto"会自动检测，也可手动设定为"ascend","cuda","mps","cpu"其中之一。
+MS_EMBEDDING_DEVICE = "auto"
+EMBEDDING_DEVICE = MS_EMBEDDING_DEVICE
+
+EMBEDDING_DEVICE_ID = 0
+
+global LLM_MODELS
+# LLM 名称
+MS_LLM_MODEL = "mindspore-api"
+LLM_MODELS = [MS_LLM_MODEL]
+
+
+# LLM 运行设备。设为"auto"会自动检测，也可手动设定为"ascend","cuda","mps","cpu"其中之一。
+# 对于调用远端 API 运行的模型，该设置无效
+MS_LLM_DEVICE = "auto"
+LLM_DEVICE = MS_LLM_DEVICE
+
+
+global ONLINE_LLM_MODEL
+MS_ONLINE_LLM_MODEL = {
+    "mindspore-api": {
+        "version": "InternLM-20B",
+        "api_key": "EMPTY",
+        "secret_key": "",
+        "provider": "MindSporeWorker",
+        "model_type": "internlm"
+    },
+}
+ONLINE_LLM_MODEL.update(MS_ONLINE_LLM_MODEL)
+
+
+# ===============================
+# Prompt Config
+# ===============================
+global PROMPT_TEMPLATES
+MS_PROMPT_TEMPLATES = {
+    "llm_chat": {},
+    "knowledge_base_chat": {
+        "ms-internlm":
+            '根据已知信息，简洁和专业的来回答问题。如果无法从中得到答案，请说 “根据已知信息无法回答该问题”，'
+            '不允许在答案中添加编造成分，答案请使用中文。\n'
+            '已知信息：{{ context }}\n'
+            '问题：{{ question }}\n',
+    },
+    "search_engine_chat": {},
+    "agent_chat": {}
+}
+
+PROMPT_TEMPLATES["llm_chat"].update(MS_PROMPT_TEMPLATES["llm_chat"])
+PROMPT_TEMPLATES["knowledge_base_chat"].update(MS_PROMPT_TEMPLATES["knowledge_base_chat"])
+PROMPT_TEMPLATES["search_engine_chat"].update(MS_PROMPT_TEMPLATES["search_engine_chat"])
+PROMPT_TEMPLATES["agent_chat"].update(MS_PROMPT_TEMPLATES["agent_chat"])
+
+# ===============================
+# Server Config
+# ===============================
+
+MS_SERVER_HOST = DEFAULT_BIND_HOST
+MS_SERVER_PORT = 1234
+
+MS_SERVER = {
+    "host": MS_SERVER_HOST,
+    "port": MS_SERVER_PORT,
+}
+
+
+# fastchat model_worker server
+# 这些模型必须是在model_config.MODEL_PATH或ONLINE_MODEL中正确配置的。
+# 在启动startup.py时，可用通过`--model-name xxxx yyyy`指定模型，不指定则为LLM_MODELS
+global FSCHAT_MODEL_WORKERS
+MS_FSCHAT_MODEL_WORKERS = {
+    "mindspore-api": {
+        "port": 31111,
+    },
+}
+
+FSCHAT_MODEL_WORKERS.update(MS_FSCHAT_MODEL_WORKERS)

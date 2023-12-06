@@ -430,7 +430,12 @@ def run_api_server(started_event: mp.Event = None, run_mode: str = None):
     from server.api import create_app
     import uvicorn
     from server.utils import set_httpx_config
+    from server.knowledge_base.kb_cache.base import embeddings_pool
     set_httpx_config()
+
+    print(f"预加载 Embedding 模型")
+    embeddings_pool.load_embeddings(EMBEDDING_MODEL, embedding_device())
+    print(f"预加载 Embedding 模型完毕")
 
     app = create_app(run_mode=run_mode)
     _set_app_event(app, started_event)
@@ -722,7 +727,7 @@ async def start_main_server():
             target=run_api_server,
             name=f"API Server",
             kwargs=dict(started_event=api_started, run_mode=run_mode),
-            daemon=True,
+            daemon=False,   # For loading mindspore embedding model
         )
         processes["api"] = process
 

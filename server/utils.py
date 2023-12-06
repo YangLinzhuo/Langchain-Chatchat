@@ -431,9 +431,10 @@ def get_prompt_template(type: str, name: str) -> Optional[str]:
     type: "llm_chat","agent_chat","knowledge_base_chat","search_engine_chat"的其中一种，如果有新功能，应该进行加入。
     '''
 
-    from configs import prompt_config
+    from configs import prompt_config, mindspore_config
     import importlib
     importlib.reload(prompt_config)  # TODO: 检查configs/prompt_config.py文件有修改再重新加载
+    importlib.reload(mindspore_config)
     return prompt_config.PROMPT_TEMPLATES[type].get(name)
 
 
@@ -498,8 +499,13 @@ def set_httpx_config(
     # 自动检查torch可用的设备。分布式部署时，不运行LLM的机器上可以不装torch
 
 
-def detect_device() -> Literal["cuda", "mps", "cpu"]:
+def detect_device() -> Literal["cuda", "mps", "cpu", "ascend"]:
     try:
+        try:
+            import mindspore
+            return "ascend"
+        except:
+            pass
         import torch
         if torch.cuda.is_available():
             return "cuda"
@@ -510,16 +516,16 @@ def detect_device() -> Literal["cuda", "mps", "cpu"]:
     return "cpu"
 
 
-def llm_device(device: str = None) -> Literal["cuda", "mps", "cpu"]:
+def llm_device(device: str = None) -> Literal["cuda", "mps", "cpu", "ascend"]:
     device = device or LLM_DEVICE
-    if device not in ["cuda", "mps", "cpu"]:
+    if device not in ["cuda", "mps", "cpu", "ascend"]:
         device = detect_device()
     return device
 
 
-def embedding_device(device: str = None) -> Literal["cuda", "mps", "cpu"]:
+def embedding_device(device: str = None) -> Literal["cuda", "mps", "cpu", "ascend"]:
     device = device or EMBEDDING_DEVICE
-    if device not in ["cuda", "mps", "cpu"]:
+    if device not in ["cuda", "mps", "cpu", "ascend"]:
         device = detect_device()
     return device
 
