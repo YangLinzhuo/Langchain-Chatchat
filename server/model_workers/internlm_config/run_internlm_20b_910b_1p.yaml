@@ -162,7 +162,6 @@ model:
     is_dynamic: True
     qkv_concat: False
     act_len: False
-    max_cache_length: 16384
     use_rope_slice: False
     use_kvcache_mgr: True
     pretrain_seqlen: 2048

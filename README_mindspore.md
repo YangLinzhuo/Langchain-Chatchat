@@ -1,8 +1,8 @@
 # MindSpore-Langchain 介绍
 
 本项目基于原 [LangChain-ChatChat](https://github.com/chatchat-space/Langchain-Chatchat) 项目修改而来，添加了对 MindSpore 框架的
-适配代码。关于 LangChain 的基本配置和依赖，请参看 README_zh.md 或者 README_en.md。本说明主要介绍支持 MindSpore 框架推理相关的
-主要修改点。
+适配代码。关于 LangChain 的基本配置和依赖，请参看 README_zh.md 或者 README_en.md。本文档主要介绍适配 MindSpore 框架推理相关的
+内容。
 
 LangChain 和 MS-Serving 服务是解耦的两个服务。用户输入 Query 后，LangChain 框架会经过一定处理，生成对应的 Prompt，并向 MS-Serving
 服务发送包含 Prompt 的请求。MS-Serving 服务收到请求后，将请求分发给对应后端部署的大模型，获取生成的结果后，通过 Response 返回给
@@ -17,31 +17,78 @@ LangChain 框架，最终将结果显示给用户。
 
 # 关于配置
 
-为了便于日后同步原 LangChain-ChatChat 的代码，本仓库 MindSpore 相关的配置全部放在 `configs/mindspore_config.py` 中，
-在 `config/__init__.py` 中最后导入该配置，以动态修改原始的配置，尽量减少对配置的侵入式修改。
+为了便于日后同步原 LangChain-ChatChat 仓库的代码，本仓库 MindSpore 相关的配置全部放在 `configs/mindspore_config.py` 中，
+注意需要在 `config/__init__.py` 中最后导入该配置，以动态修改原始的配置，尽量减少对原配置的侵入式修改。
 
 框架的部分代码中存在直接导入 `config/xx_config.py` 模块中变量的情况，此时 `config/mindspore_config.py` 中的修改可能不会生效，
-如果发现修改的配置未生效，可以通过查找 `from config` 开头的代码，看是否存在直接导入 `config/xx_config.py` 的情况，修改对应代码即可。
+如果发现修改的配置未生效，可以通过查找 `from config` 开头的代码，看是否存在直接导入 `config/xx_config.py` 的代码，修改对应代码即可。
 
 目前发现的以上情形暂时有以下两处：
 
-- `server/utils.py` 的 `get_prompt_template` 函数
+- `server/utils.py` 的 `get_prompt_template` 函数，需要额外导入 `mindspore_config` 模块：
 ```python
-from configs import prompt_config, mindspore_config
+    from configs import prompt_config, mindspore_config
     import importlib
     importlib.reload(prompt_config)
     importlib.reload(mindspore_config)
     return prompt_config.PROMPT_TEMPLATES[type].get(name)
 ```
 
-- `init_databse.py`
+- `init_databse.py`，需要修改导入的方式：
 ```python
 # 原来是直接 from configs.model_config import xxx
 from configs import NLTK_DATA_PATH, EMBEDDING_MODEL
 ```
 
+其他修改：
 
-# Bert Embedding 模型
+- `startup.py`: 预加载、`run_api_server` 进程启动参数 `daemon=False`
+- `config\__init__.py`：导入 `mindspore_config`
+- `server/knowledge_base/kb_cache/base.py`：处理 `mindspore` 框架 Embedding 模型导入
+
+# 环境配置
+
+镜像及软件包文件请在 `issue` 中提供邮箱地址，将分享链接通过邮箱发送给您。
+
+- 解压文件后，解压 `mindspore_serving.zip`，导入解压的 `mindspore_serving.tar` 镜像包：
+```shell
+docker load < mindspore_serving.tar
+```
+- 启动导入的镜像：
+```shell
+docker run -it --ipc=host \
+--net=host \
+--device=/dev/davinci0 \
+--device=/dev/davinci1 \
+--device=/dev/davinci2 \
+--device=/dev/davinci3 \
+--device=/dev/davinci4 \
+--device=/dev/davinci5 \
+--device=/dev/davinci6 \
+--device=/dev/davinci7 \
+--device=/dev/davinci_manager \
+--device=/dev/devmm_svm \
+--device=/dev/hisi_hdc \
+-v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
+-v /usr/local/Ascend/add-ons/:/usr/local/Ascend/add-ons/ \
+-v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi \
+-v /var/log/npu/:/usr/slog \
+mindspore_serving:{tag} \
+/bin/bash
+```
+注意需要添加 `--net=host`，以支持外部访问容器的端口。`--device` 指定加载的昇腾设备编号，默认全部加载，可以根据情况选择仅加载部分设备。
+`mindspore_serving:{tag}` 为导入的镜像名称及 `tag`，如果实际有差异，请替换为实际的容器镜像名称及 `tag`。
+
+- 进入容器后，安装软件包中提供的 `mindspore` 和 `mindspore-lite` 的 `whl` 包：
+```shell
+pip install mindspore-2.2.10-cp39-cp39-linux_aarch64.whl
+pip install mindspore_lite-2.2.10-cp39-cp39-linux_aarch64.whl
+```
+
+- 检查是否安装了 `mindspore-serving` 模块，如果已安装，请卸载原镜像中的包。
+- `mindfomers` 和 `serving` 文件夹是后续使用的 `mindformers` 套件和 `serving` 套件的对应分支代码，可以直接使用
+
+# Bert Embedding 模型配置
 
 本仓库使用 Bert-base 作为基础的 Embedding 模型，而非原项目中默认使用的 [moka-ai/m3e-base](https://huggingface.co/moka-ai/m3e-base)。
 
@@ -139,23 +186,21 @@ def run_api_server(started_event: mp.Event = None, run_mode: str = None):
 
 本项目后端大模型基于 [MindSpore Serving](https://gitee.com/mindspore/serving) 仓库的 2.1 分支。
 
-## 环境配置
-
-安装对应版本的 MindSpore 和 MindSpore-lite:
-
-- [MindSpore 2.2.10 Python 3.9 版本](https://repo.mindspore.cn/mindspore/mindspore/version/202311/20231130/r2.2.10_20231130221514_da8ea6513d0a23b41149e846c3a38891e93c3919/unified/aarch64/mindspore-2.2.10-cp39-cp39-linux_aarch64.whl)
-- [MindSpore-lite 2.2.10 Python 3.9 版本](https://repo.mindspore.cn/mindspore/mindspore/version/202311/20231130/r2.2.10_20231130221514_da8ea6513d0a23b41149e846c3a38891e93c3919/lite/linux_aarch64/cloud_fusion/python39/mindspore_lite-2.2.10-cp39-cp39-linux_aarch64.whl)
+当前暂时支持 `LLaMA-70B` 和 `InternLM-20B`，后续会提供其他模型的支持。下面以 `InternLM-20B` 为例。
 
 ## 导出 `MindIR` 模型
+
+以 `InternLM-20B` 模型为例。
 
 MindSpore Serving 服务需要使用 `MindIR` 格式的模型。需要使用 [mindformers 套件](https://gitee.com/mindspore/mindformers)
 的 `ft-predict-opt` 分支。参考对应模型的教程导出 `mindir` 格式的模型文件。
 
-- 下载 HuggingFace 权重文件
-- 转换权重为 `ckpt` 文件：使用 `mindformers` 套件中的转换脚本转换，具体可以参考每个模型各自的详细文档
-- 导出 `mindir` 格式文件，单卡只支持 `batch_size=1`
-
-导出时文件配置可以参考 `server/model_workers/internlm_config/run_internlm_20b_910b_1p.yaml`，注意修改以下内容：
+- 下载 [HuggingFace 权重文件](https://huggingface.co/internlm/internlm-chat-20b/tree/v1.0.2)，注意是 v1.0.2 版本
+- 转换权重为 `ckpt` 文件：使用 `mindformers` 套件中的转换脚本转换，路径在 `research/internlm/convert_weight.py`
+```shell
+python convert_weight.py --torch_ckpt_dir /path/to/torch/checkpoint --mindspore_ckpt_path /path/to/save/ckpt
+```
+- 导出 `mindir` 格式文件，注意单卡只支持 `batch_size=1`，导出时文件配置可以参考 `server/model_workers/internlm_config/run_internlm_20b_910b_1p.yaml`，注意修改以下内容：
 
 ```yaml
 ...
@@ -183,13 +228,20 @@ processor:
   type: LlamaProcessor
 ```
 
-## 修改配置
+- 配置文件修改完成后，将 `yaml` 配置文件和转换后的权重文件、以及 `tokenizer` 模型文件放在一起，使用 `mindformers` 中的导出脚本导出 `mindir` 模型，文件路径在 `mindformers/tools/export.py`：
+```shell
+python export.py --model_dir /path/to/ckpt/dir/
+```
 
-启动 MindSpore Serving 之前，需要配置 `mindspore-lite` 相关设置。`server/model_workers/internlm_config` 下的
-`internlm_lite_full.ini` 和 `internlm_lite_inc.ini` 用于 `mindspore-lite` 模型启动配置。
+导出大约需要 30~40 分钟，请耐心等待。
+
+## 修改 MS-Serving 配置
+
+启动 MS-Serving 之前，需要配置 `mindspore-lite` 相关设置。如果前文的导出模型成功，在目标文件夹下应该能够看到带有 `prefill` 和 `inc` 名称的 `.mindir` 文件。
+`server/model_workers/internlm_config` 下的 `internlm_lite_full.ini` 和 `internlm_lite_inc.ini` 用于 `mindspore-lite` 调用这两个模型。
 
 
-使用 `serving_config.py` 替换 `serving` 仓库下 `config/serving_config.py` 的文件，修改对应 `mindir` 文件路径：
+使用 `server/model_workers/internlm_config/serving_config.py` 替换 `serving` 仓库下 `config/serving_config.py` 的文件，修改对应 `mindir` 文件路径：
 
 ```python
 MINDIR_ROOT = "/path/to/mindir/directory"
@@ -203,7 +255,7 @@ argmax_model = ["/path/to/argmax.mindir"]
 topk_model = ["/path/to/topk.mindir"]
 ```
 
-其中 `argmax_model` 和 `topk_model` 需要运行 `serving` 仓库中的 `post_sampling_model.py` 脚本生成，并修改为生成的文件路径。
+其中 `argmax_model` 和 `topk_model` 需要运行 `serving` 仓库中的 `post_sampling_model.py` 脚本生成，并修改为生成的文件路径，默认在当前路径下的 `extends` 文件夹中。
 
 修改对应 `ini` 文件路径，`ini` 文件可以使用 `server/model_workers/internlm_config` 下的 `ini` 文件：
 
@@ -217,15 +269,18 @@ post_model_ini = '/path/to/config.ini'          # 填写 config.ini 路径
 tokenizer_path = '/path/to/tokenizer.model'     # 填写 tokenizer.model 路径
 ```
 
+带有 `prefill` 和 `inc` 的配置文件对应 `ctx_path` 和 `inc_path`，`config.ini` 对应 `post_model_ini` 配置，`tokenizer_path` 是对应模型的 tokenizer 文件路径。
+
 
 ## 启动 MindSpore Serving 服务
 
-克隆 MindSpore Serving 仓库后，进入 `serving` 目录，将当前路径添加到 `PYTHONPATH` 环境变量：
+在 `serving` 仓库代码的根目录，将当前路径添加到 `PYTHONPATH` 环境变量：
 
 ```shell
 export PYTHONPATH=${PYTHONPATH}:$(pwd)
 ```
 
+注意如果镜像中原来安装了 `mindspore-serving`，请先卸载，否则修改的配置可能不生效。
 
 通过 `start_agent.py` 启动 agent 服务，加载模型需要花费较长时间，请耐心等待。推荐使用以下命令后台运行：
 
@@ -240,6 +295,8 @@ SERVER_APP_HOST = '0.0.0.0'
 SERVER_APP_PORT = 9889
 device = 6  # 用于加载模型的昇腾芯片编号
 ```
+
+端口号和设备可以根据情况修改。后续启动 LangChain 框架时填写的端口号需要和该设置对应。
 
 # 启动 LangChain-ChatChat 服务
 
@@ -293,19 +350,19 @@ MindSpore Serving 服务的 `ip` 和端口地址在 `configs/mindspore_config.py
 ```python
 MS_SERVER = {
     "host": "0.0.0.0",
-    "port": 1234
+    "port": 9889
 }
 ```
 
 ## 启动服务
-
-使用 `python startup.py -a -n mindspore-api` 即可启动基于 MindSpore Serving 后端的 LangChain-ChatChat 框架。
 
 启动前有几点需要注意：
 
 - 关闭网络代理，否则可能路由到本地 `ip`
 - 网页如果无法访问，可能需要关闭防火墙（可选）：`systemctl stop firewalld`
 - 设置环境变量：`export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`
+
+然后使用 `python startup.py -a -n mindspore-api` 即可启动基于 MS-Serving 后端的 LangChain-ChatChat 框架。
 
 启动之后，访问服务器对应的 `{ip}:{port}` 即可进入到对话页面，这里的 `ip` 是服务器连接的 `ip`，不是本地 `0.0.0.0`。
 
