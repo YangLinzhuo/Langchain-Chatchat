@@ -114,7 +114,7 @@ MODEL_PATH["embed_model"].update(MS_MODEL_PATH["embed_model"])
 ```
 
 在执行 `startup.py` 的目录下，`mindformers` 套件会自动下载 `Bert` 相关的配置文件，存放在 `checkpoint_download/bert` 路径下，名称
-为 `bert_base_uncased.yaml`。在某些情况下，可能预设的 `seq_len` 长度不够，可以修改配置文件中 `seq_len` 选项：
+为 `bert_base_uncased.yaml`（本仓库中预置了 Bert 配置，可以下载权重后放入其中直接使用）。在某些情况下，可能预设的 `seq_len` 长度不够，可以修改配置文件中 `seq_len` 选项：
 
 ```yaml
 model:
@@ -314,6 +314,8 @@ pip install -r requirements_webui.txt
 ```
 
 ## 服务配置
+
+使用 `python copy_config_example.py` 生成 `configs` 下的配置文件。
 
 可以配置 `configs/mindspore_config.py` 文件，在 `MS_ONLINE_LLM_MODEL` 项目下
 添加 `mindspore-api` 项，可以配置 `model_type` 选项来选择后端模型，目前暂时支持 `InternLM-20B`。
