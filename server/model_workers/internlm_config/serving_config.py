@@ -40,7 +40,7 @@ prefill_model_path = [
 ]
 
 decode_model_path = [
-    f"{MINDIR_ROOT}/path/to/inc_graph.mindir"
+    f"{MINDIR_ROOT}/inc_graph.mindir"
 ]
 
 argmax_model = ["extends/dyn_batch_argmax_post_calc_bz1.mindir"]
@@ -180,14 +180,14 @@ def ExtraInput(input_ids, current_index, init_reset, is_prefill, valid_length, *
                 act_len = np.zeros((seq), np.int64)
                 break
             act_len = np.zeros((act_len_list[-1]), np.int64)
-        # return act_len
-        return []
+        return act_len
 
     if not is_prefill:
         max_seq = 0
         for i in range(len(valid_length)):
             max_seq = max(max_seq, valid_length[i] + 1)
-        return [get_act_length(max_seq, Baseconfig.zactivate_len)]
+        # return [get_act_length(max_seq, Baseconfig.zactivate_len)]
+        return []
     max_prefill_length = 0
     for item in valid_length:
         max_prefill_length = max(max_prefill_length, item)

@@ -15,7 +15,7 @@ trainer:
 # infer config
 infer:
   prefill_model_path: "/home/internlm-mindir/prefill.mindir"   # 导出文件路径
-  increment_model_path: "/home/internlm-mindir/prefill.mindir" # 导出文件路径
+  increment_model_path: "/home/internlm-mindir/inc.mindir" # 导出文件路径
   infer_seq_length: 4096
   model_type: mindir
 

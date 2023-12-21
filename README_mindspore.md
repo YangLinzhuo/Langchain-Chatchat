@@ -196,10 +196,11 @@ MindSpore Serving 服务需要使用 `MindIR` 格式的模型。需要使用 [mi
 的 `ft-predict-opt` 分支。参考对应模型的教程导出 `mindir` 格式的模型文件。
 
 - 下载 [HuggingFace 权重文件](https://huggingface.co/internlm/internlm-chat-20b/tree/v1.0.2)，注意是 v1.0.2 版本
-- 转换权重为 `ckpt` 文件：使用 `mindformers` 套件中的转换脚本转换，路径在 `research/internlm/convert_weight.py`
+- 转换权重为 `ckpt` 文件：使用 `mindformers` 套件中的转换脚本转换，路径在 `research/internlm/convert_weight.py`。
 ```shell
 python convert_weight.py --torch_ckpt_dir /path/to/torch/checkpoint --mindspore_ckpt_path /path/to/save/ckpt
 ```
+`mindspore_ckpt_path` 需要提供文件名，不能是文件夹名称。
 - 导出 `mindir` 格式文件，注意单卡只支持 `batch_size=1`，导出时文件配置可以参考 `server/model_workers/internlm_config/run_internlm_20b_910b_1p.yaml`，注意修改以下内容：
 
 ```yaml
@@ -209,7 +210,7 @@ load_checkpoint: "/home/ckpt/internlm.ckpt"  # 设置为本地权重路径
 
 infer:
   prefill_model_path: "/home/internlm-mindir/prefill.mindir"   # 导出文件本地路径
-  increment_model_path: "/home/internlm-mindir/prefill.mindir" # 导出文件本地路径
+  increment_model_path: "/home/internlm-mindir/inc.mindir" # 导出文件本地路径
   infer_seq_length: 4096
   model_type: mindir
 ...
