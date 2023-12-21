@@ -50,7 +50,7 @@ from configs import NLTK_DATA_PATH, EMBEDDING_MODEL
 
 镜像及软件包文件请在 `issue` 中提供邮箱地址，将分享链接通过邮箱发送给您。
 
-- 解压文件后，解压 `mindspore_serving.zip`，导入解压的 `mindspore_serving.tar` 镜像包：
+- 解压文件后，解压 `zip` 包后，导入其中带有 `tar` 后缀的镜像包，例如：
 ```shell
 docker load < mindspore_serving.tar
 ```
@@ -94,8 +94,8 @@ pip install mindspore_lite-2.2.10-cp39-cp39-linux_aarch64.whl
 
 
 该模型依赖 [mindformers 套件](https://gitee.com/mindspore/mindformers)，需要按照教程安装 `mindformers` 套件。
-在 [HuggingFace](https://huggingface.co/bert-base-chinese) 上下载中文 Bert-base 权重之后，参考
-[文档](https://gitee.com/mindspore/mindformers/blob/dev/docs/model_cards/bert.md) 转换成 `ckpt` 格式的权重。
+在 [HuggingFace](https://huggingface.co/bert-base-chinese) 上下载中文 Bert-base 权重以及对应的 `vocab.txt` 文件，参考
+[文档](https://gitee.com/mindspore/mindformers/blob/dev/docs/model_cards/bert.md) 转换成 `ckpt` 格式的权重，注意 `--layers 12` 参数不能少。
 
 在 `configs/mindspore_config.py` 文件中，修改 `MS_MODEL_MODEL` 字典中 `embed_model` 项下的 `ms-bert-base` 以配置本地权重的路径，
 路径只需写到权重文件的上一层文件夹即可。例如权重文件路径为 `/home/bert/bert.ckpt`，那么路径只需要写到 `/home/bert` 即可。
@@ -114,7 +114,7 @@ MODEL_PATH["embed_model"].update(MS_MODEL_PATH["embed_model"])
 ```
 
 在执行 `startup.py` 的目录下，`mindformers` 套件会自动下载 `Bert` 相关的配置文件，存放在 `checkpoint_download/bert` 路径下，名称
-为 `bert_base_uncased.yaml`（本仓库中预置了 Bert 配置，可以下载权重后放入其中直接使用）。在某些情况下，可能预设的 `seq_len` 长度不够，可以修改配置文件中 `seq_len` 选项：
+为 `bert_base_uncased.yaml`（本仓库中在 `checkpoint_download` 文件夹下预置了 Bert 配置，可以下载权重后放入其中直接使用）。在某些情况下，可能预设的 `seq_len` 长度不够，可以修改配置文件中 `seq_len` 选项：
 
 ```yaml
 model:
@@ -182,11 +182,13 @@ def run_api_server(started_event: mp.Event = None, run_mode: str = None):
     ...
 ```
 
+如果不需要用到知识库功能，可以将这部分代码注释掉。
+
 # 配置 MindSpore Serving 服务
 
 本项目后端大模型基于 [MindSpore Serving](https://gitee.com/mindspore/serving) 仓库的 2.1 分支。
 
-当前暂时支持 `LLaMA-70B` 和 `InternLM-20B`，后续会提供其他模型的支持。下面以 `InternLM-20B` 为例。
+当前暂时支持 `LLaMA2-70B` 和 `InternLM-20B`，后续会提供其他模型的支持。下面以 `InternLM-20B` 为例。
 
 ## 导出 `MindIR` 模型
 
@@ -195,7 +197,7 @@ def run_api_server(started_event: mp.Event = None, run_mode: str = None):
 MindSpore Serving 服务需要使用 `MindIR` 格式的模型。需要使用 [mindformers 套件](https://gitee.com/mindspore/mindformers)
 的 `ft-predict-opt` 分支。参考对应模型的教程导出 `mindir` 格式的模型文件。
 
-- 下载 [HuggingFace 权重文件](https://huggingface.co/internlm/internlm-chat-20b/tree/v1.0.2)，注意是 v1.0.2 版本
+- 下载 [HuggingFace 权重文件](https://huggingface.co/internlm/internlm-chat-20b/tree/v1.0.2)，注意是 v1.0.2 版本，其他的小文件也需要下载，在转换权重时都需要。
 - 转换权重为 `ckpt` 文件：使用 `mindformers` 套件中的转换脚本转换，路径在 `research/internlm/convert_weight.py`。
 ```shell
 python convert_weight.py --torch_ckpt_dir /path/to/torch/checkpoint --mindspore_ckpt_path /path/to/save/ckpt
@@ -229,7 +231,7 @@ processor:
   type: LlamaProcessor
 ```
 
-- 配置文件修改完成后，将 `yaml` 配置文件和转换后的权重文件、以及 `tokenizer` 模型文件放在一起，使用 `mindformers` 中的导出脚本导出 `mindir` 模型，文件路径在 `mindformers/tools/export.py`：
+- 配置文件修改完成后，将 `yaml` 配置文件和转换后的权重文件、以及 `tokenizer` 模型文件放在相同文件夹下，使用 `mindformers` 中的导出脚本导出 `mindir` 模型，文件路径在 `mindformers/tools/export.py`：
 ```shell
 python export.py --model_dir /path/to/ckpt/dir/
 ```
@@ -239,7 +241,8 @@ python export.py --model_dir /path/to/ckpt/dir/
 ## 修改 MS-Serving 配置
 
 启动 MS-Serving 之前，需要配置 `mindspore-lite` 相关设置。如果前文的导出模型成功，在目标文件夹下应该能够看到带有 `prefill` 和 `inc` 名称的 `.mindir` 文件。
-`server/model_workers/internlm_config` 下的 `internlm_lite_full.ini` 和 `internlm_lite_inc.ini` 用于 `mindspore-lite` 调用这两个模型。
+
+在本仓库的 `server/model_workers/internlm_config` 文件夹下，准备了 `*.ini` 和 `*.yaml` 文件用于 `mindspore-lite` 调用导出的 MindIR 模型，`serving_config.py` 用于配置 MS-Serving 服务。
 
 
 使用 `server/model_workers/internlm_config/serving_config.py` 替换 `serving` 仓库下 `config/serving_config.py` 的文件，修改对应 `mindir` 文件路径：
@@ -361,7 +364,7 @@ MS_SERVER = {
 
 启动前有几点需要注意：
 
-- 关闭网络代理，否则可能路由到本地 `ip`
+- 关闭网络代理，否则可能无法路由到本地 `ip`
 - 网页如果无法访问，可能需要关闭防火墙（可选）：`systemctl stop firewalld`
 - 设置环境变量：`export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`
 
