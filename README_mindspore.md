@@ -281,7 +281,7 @@ tokenizer_path = '/path/to/tokenizer.model'     # 填写 tokenizer.model 路径
 在 `serving` 仓库代码的根目录，将当前路径添加到 `PYTHONPATH` 环境变量：
 
 ```shell
-export PYTHONPATH=${PYTHONPATH}:$(pwd)
+export PYTHONPATH=$(pwd):${PYTHONPATH}
 ```
 
 注意如果镜像中原来安装了 `mindspore-serving`，请先卸载，否则修改的配置可能不生效。
@@ -367,6 +367,8 @@ MS_SERVER = {
 - 关闭网络代理，否则可能无法路由到本地 `ip`
 - 网页如果无法访问，可能需要关闭防火墙（可选）：`systemctl stop firewalld`
 - 设置环境变量：`export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`
+
+首先执行 `python init_database.py -r` 初始化数据库（执行前需要先配置好 Bert）。 
 
 然后使用 `python startup.py -a -n mindspore-api` 即可启动基于 MS-Serving 后端的 LangChain-ChatChat 框架。
 
