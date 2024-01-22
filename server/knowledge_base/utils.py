@@ -239,6 +239,24 @@ def make_text_splitter(
                     chunk_size=chunk_size,
                     chunk_overlap=chunk_overlap
                 )
+            elif text_splitter_dict[splitter_name]["source"] == "mindformers":  ## 从mindformers加载
+                if text_splitter_dict[splitter_name]["tokenizer_name_or_path"] == "":
+                    config = get_model_worker_config(llm_model)
+                    text_splitter_dict[splitter_name]["tokenizer_name_or_path"] = \
+                        config.get("model_path")
+                from mindformers import AutoTokenizer
+                tokenizer = AutoTokenizer.from_pretrained(
+                    text_splitter_dict[splitter_name]["tokenizer_name_or_path"]
+                )
+
+                def _tokenizer_length(text: str) -> int:
+                    return len(tokenizer.encode(text))
+
+                text_splitter = TextSplitter(
+                    length_function=_tokenizer_length,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap
+                )
             else:
                 try:
                     text_splitter = TextSplitter(

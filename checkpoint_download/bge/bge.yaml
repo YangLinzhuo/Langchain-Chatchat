@@ -115,10 +115,10 @@ model:
     batch_size: 128
     seq_length: 512 #length of input sentence
     vocab_size: 21128 #size of vocab
-    hidden_size: 768 #size of text feature
-    num_hidden_layers: 12 #model depth
-    num_attention_heads: 12 #number of attention heads
-    intermediate_size: 3072 #hidden_size*4
+    hidden_size: 1024 #size of text feature
+    num_hidden_layers: 24 #model depth
+    num_attention_heads: 16 #number of attention heads
+    intermediate_size: 4096 #hidden_size*4
     hidden_act: "gelu" #activation
     post_layernorm_residual: True #select postlayernorm or prelayernorm
     hidden_dropout_prob: 0.1
@@ -132,7 +132,7 @@ model:
   arch:
     type: BertForEmbedding
 
-# lr sechdule
+# lr schedule
 lr_schedule:
   type: cosine
   learning_rate: 0.0001

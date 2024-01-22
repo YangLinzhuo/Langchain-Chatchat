@@ -45,6 +45,7 @@ from configs import NLTK_DATA_PATH, EMBEDDING_MODEL
 - `startup.py`: 预加载、`run_api_server` 进程启动参数 `daemon=False`
 - `config\__init__.py`：导入 `mindspore_config`
 - `server/knowledge_base/kb_cache/base.py`：处理 `mindspore` 框架 Embedding 模型导入
+- `server/knowledge_base/utils.py`：`make_text_splitter` 函数添加处理 `mindformers` tokenizer 分支
 
 # 环境配置
 
@@ -90,12 +91,18 @@ pip install mindspore_lite-2.2.10-cp39-cp39-linux_aarch64.whl
 
 # Bert Embedding 模型配置
 
-本仓库使用 Bert-base 作为基础的 Embedding 模型，而非原项目中默认使用的 [moka-ai/m3e-base](https://huggingface.co/moka-ai/m3e-base)。
+本仓库使用支持 Bert-Base 和 BGE 作为基础的 Embedding 模型，而非原项目中默认使用的 [moka-ai/m3e-base](https://huggingface.co/moka-ai/m3e-base)。
 
-
+## Bert-Base 模型配置
 该模型依赖 [mindformers 套件](https://gitee.com/mindspore/mindformers)，需要按照教程安装 `mindformers` 套件。
 在 [HuggingFace](https://huggingface.co/bert-base-chinese) 上下载中文 Bert-base 权重以及对应的 `vocab.txt` 文件，参考
 [文档](https://gitee.com/mindspore/mindformers/blob/dev/docs/model_cards/bert.md) 转换成 `ckpt` 格式的权重，注意 `--layers 12` 参数不能少。
+
+转换命令：
+
+```shell
+python convert_weight.py --layers 12 --torch_path path/to/pytorch_mode.bin --mindspore_path ./ms_bert_base.ckpt
+```
 
 在 `configs/mindspore_config.py` 文件中，修改 `MS_MODEL_MODEL` 字典中 `embed_model` 项下的 `ms-bert-base` 以配置本地权重的路径，
 路径只需写到权重文件的上一层文件夹即可。例如权重文件路径为 `/home/bert/bert.ckpt`，那么路径只需要写到 `/home/bert` 即可。
@@ -106,7 +113,8 @@ pip install mindspore_lite-2.2.10-cp39-cp39-linux_aarch64.whl
 global MODEL_PATH
 MS_MODEL_PATH = {
     "embed_model": {
-        "ms-bert-base": "path to bert base checkpoint"
+        "ms-bert-base": "checkpoint_download/bert",
+        "ms-bge": "checkpoint_download/bge",
     },
 }
 MODEL_PATH["embed_model"].update(MS_MODEL_PATH["embed_model"])
@@ -120,7 +128,7 @@ MODEL_PATH["embed_model"].update(MS_MODEL_PATH["embed_model"])
 model:
   model_config:
     # other configs ...
-    seq_len: 1024
+    seq_len: 512 # 最大不超过 512
     # other configs ...
 ```
 
@@ -183,6 +191,21 @@ def run_api_server(started_event: mp.Event = None, run_mode: str = None):
 ```
 
 如果不需要用到知识库功能，可以将这部分代码注释掉。
+
+## BGE 模型配置
+
+BGE 模型配置和上文 Bert-Base 基本一致，修改 `MS_EMBEDDING_MODEL = "ms-bge"` 即可选择使用 BGE 来作为 Embedding 模型。
+
+权重下载地址：https://huggingface.co/BAAI/bge-large-zh
+
+需要注意的是，BGE 模型和 Bert 模型结构稍有不同，需要使用 `checkpoint_download/bge/convert_weight.py` 脚本转换，使用该文件夹下的
+`bge.yaml` 作为模型配置文件。注意使用 `convert_weight.py` 转换时需要添加参数 `--layers 24`。
+
+转换命令：
+
+```shell
+python convert_weight.py --layers 24 --torch_path path/to/pytorch_mode.bin --mindspore_path ./ms_bge.ckpt
+```
 
 # 配置 MindSpore Serving 服务
 
@@ -317,6 +340,40 @@ pip install -r requirements_lite.txt
 pip install -r requirements_webui.txt
 ```
 
+## 生成向量库
+
+首先设置环境变量，将 `mindformers` 代码的根路径添加到 `PYTHONPATH` 环境变量中：
+
+```shell
+export PYTHONPATH=/path/to/mindformers:${PYTHONPATH}
+```
+
+框架启动前，需要使用 `python init_database.py -r` 命令生成向量库，需要使用到 Embedding 模型以及后端大模型的 tokenizer。
+
+相关配置如下：
+
+```python
+MS_MODEL_PATH = {
+    "embed_model": {
+        "ms-bert-base": "checkpoint_download/bert",
+        "ms-bge": "checkpoint_download/bge",
+    },
+}
+
+# 选用的 Embedding 名称
+MS_EMBEDDING_MODEL = "ms-bge"
+
+MS_ONLINE_LLM_MODEL = {
+    "mindspore-api": {
+        ...
+        "model_path": "checkpoint_download/internlm/"    # used for load corresponding tokenizer
+    },
+}
+```
+
+其中 `MS_ONLINE_LLM_MODEL` 中配置的 `model_path` 用于切分文档时使用，建议填写后端大模型对应的配置文件及 tokenizer.model 所在文件夹
+路径，提升文档切分的效果。
+
 ## 服务配置
 
 使用 `python copy_config_example.py` 生成 `configs` 下的配置文件。
@@ -342,7 +399,8 @@ MS_ONLINE_LLM_MODEL = {
         "api_key": "EMPTY",
         "secret_key": "",
         "provider": "MindSporeWorker",
-        "model_type": "internlm"
+        "model_type": "internlm",
+        "model_path": "checkpoint_download/internlm/",   # used for load corresponding tokenizer
     },
 }
 ONLINE_LLM_MODEL.update(MS_ONLINE_LLM_MODEL)

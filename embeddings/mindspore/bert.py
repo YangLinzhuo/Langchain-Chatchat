@@ -1,4 +1,6 @@
+import numpy as np
 from langchain.embeddings.base import Embeddings
+from mindspore import Tensor
 import mindspore.ops as ops
 import mindspore.nn as nn
 from mindspore.ops import operations as P
@@ -59,10 +61,12 @@ class BertEmbedding(Embeddings):
         self.padding = padding
         self.max_length = max_length
         self.batch_size = batch_size
+        self.norm = ops.L2Normalize(axis=1)
 
-    def embed_documents(self, texts):
+    def embed_documents(self, texts: list[str]):
         texts_len = len(texts)
         embeddings = [[] for _ in range(texts_len)]
+        texts = [t.replace("\n", " ") for t in texts]
         i = 0
         while i < texts_len:
             batch_embedding = self.embed_batch(texts[i:i+self.batch_size])
@@ -70,32 +74,42 @@ class BertEmbedding(Embeddings):
             i += self.batch_size
         return embeddings
 
-    def embed_batch(self, texts: list):
+    def embed_batch(self, texts: list[str]) -> list[np.ndarray]:
         """
         Returns:
             list[np.ndarray]: list of embedding array
         """
-        tokens = self.tokenizer(texts, return_tensors='ms', max_length=self.max_length, padding=self.padding)
+        tokens = self.tokenizer(texts, padding=self.padding,
+                                truncation='longest_first', return_tensors='ms', max_length=self.max_length)
         bert_output = self.bert_model(tokens['input_ids'], tokens['attention_mask'], tokens['token_type_ids'])
-        embedding_batch = self.postprocess(bert_output, tokens['attention_mask'])
+        embedding_batch = self.postprocess(bert_output, attention_mask=tokens['attention_mask'])
         return [item.asnumpy() for item in embedding_batch]
 
-    def embed_query(self, text: str):
+    def embed_query(self, text: str) -> np.ndarray:
         """
         Returns:
             np.ndarray: embedding array
         """
-        embedding = self.embed_batch([text])
-        return embedding[0]
+        return self.embed_batch([text])[0]
 
-    def postprocess(self, bert_encode, attention_mask):
+    def postprocess(self, bert_encode: Tensor, attention_mask: Tensor) -> np.ndarray:
         # Mask and Mean for bert_embedding
         mask_expand = attention_mask.unsqueeze(-1).expand_as(bert_encode)
-
         sum_embedding = ops.sum(bert_encode * mask_expand, dim=1)
         sum_mask = mask_expand.sum(axis=1)
         sum_mask = ops.clamp(sum_mask, min=1e-9)
         sent_embedding = sum_embedding / sum_mask
-        L2N = ops.L2Normalize(axis=1)
-        output = L2N(sent_embedding)
+        output = self.norm(sent_embedding)
         return output
+
+
+class BgeEmbedding(BertEmbedding):
+    def __init__(self, tokenizer, bert_model, padding, max_length, batch_size, query_instruction):
+        super().__init__(tokenizer, bert_model, padding, max_length, batch_size)
+        self.query_instruction = query_instruction
+
+    def embed_query(self, text: str) -> np.ndarray:
+        return self.embed_batch([self.query_instruction + text])[0]
+
+    def postprocess(self, bert_encode: Tensor, **kwargs) -> np.ndarray:
+        return self.norm(bert_encode[:, 0])

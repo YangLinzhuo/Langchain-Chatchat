@@ -1,6 +1,7 @@
 from configs.model_config import MODEL_PATH, ONLINE_LLM_MODEL
 from configs.server_config import FSCHAT_MODEL_WORKERS, DEFAULT_BIND_HOST
 from configs.prompt_config import PROMPT_TEMPLATES
+from configs.kb_config import text_splitter_dict
 
 # ============================================================================ #
 # 本配置文件中的配置会覆盖或者更新其他配置文件中的某些配置                             #
@@ -14,14 +15,15 @@ from configs.prompt_config import PROMPT_TEMPLATES
 global MODEL_PATH
 MS_MODEL_PATH = {
     "embed_model": {
-        "ms-bert-base": "path to bert base checkpoint"
+        "ms-bert-base": "checkpoint_download/bert",
+        "ms-bge": "checkpoint_download/bge",
     },
 }
 MODEL_PATH["embed_model"].update(MS_MODEL_PATH["embed_model"])
 
 
 # 选用的 Embedding 名称
-MS_EMBEDDING_MODEL = "ms-bert-base"
+MS_EMBEDDING_MODEL = "ms-bge"
 EMBEDDING_MODEL = MS_EMBEDDING_MODEL
 
 
@@ -46,13 +48,19 @@ LLM_DEVICE = MS_LLM_DEVICE
 global ONLINE_LLM_MODEL
 MS_ONLINE_LLM_MODEL = {
     "mindspore-api": {
-        "version": "InternLM-20B",
+        "version": "internlm",
         "api_key": "EMPTY",
         "secret_key": "",
         "provider": "MindSporeWorker",
-        "model_type": "internlm"
+        "model_type": "internlm",
+        "model_path": "checkpoint_download/internlm/"    # used for load corresponding tokenizer
     },
 }
+
+# import tokenizer to register it into mindformers, should add path of mindformers to PYTHONPATH firstly
+from research.internlm.internlm_tokenizer import InternLMTokenizer
+
+MS_TOKENIZERS = {'InternLMTokenizer': InternLMTokenizer}
 ONLINE_LLM_MODEL.update(MS_ONLINE_LLM_MODEL)
 
 
@@ -78,6 +86,33 @@ PROMPT_TEMPLATES["knowledge_base_chat"].update(MS_PROMPT_TEMPLATES["knowledge_ba
 PROMPT_TEMPLATES["search_engine_chat"].update(MS_PROMPT_TEMPLATES["search_engine_chat"])
 PROMPT_TEMPLATES["agent_chat"].update(MS_PROMPT_TEMPLATES["agent_chat"])
 
+MS_HISTORY_PROMPT_TEMPLATES = {
+    # https://github.com/InternLM/InternLM/blob/main/web_demo.py
+    "internlm": {
+        "instruction":
+            "",
+        "user":
+            "<|User|>:{}\n",
+        "assistant":
+            "<|Bot|>{}<eoa>\n",
+        "post":
+            "<eoh>\n<|Bot|>:"
+    },
+    # https://github.com/deepseek-ai/DeepSeek-Coder
+    "deepseek": {
+        "instruction":
+            "You are an AI programming assistant, utilizing the Deepseek Coder model, developed by Deepseek Company, "
+            "and you only answer questions related to computer science. For politically sensitive questions, "
+            "security and privacy issues, and other non-computer science questions, you will refuse to answer. "
+            "The code must be in markdown format. \n",
+        "user":
+            "### Instruction:\n{}\n",
+        "assistant":
+            "### Response:\nAssistant: {}\n<|EOT|>\n",
+        "post": "### Response:\n"
+    },
+}
+
 # ===============================
 # Server Config
 # ===============================
@@ -102,3 +137,16 @@ MS_FSCHAT_MODEL_WORKERS = {
 }
 
 FSCHAT_MODEL_WORKERS.update(MS_FSCHAT_MODEL_WORKERS)
+
+# ===============================
+# Knowledge Base Config
+# ===============================
+
+global text_splitter_dict
+ms_text_splitter_dict = {
+    "ChineseRecursiveTextSplitter": {
+        "source": "mindformers",   # 选择tiktoken则使用openai的方法
+        "tokenizer_name_or_path": "",
+    },
+}
+text_splitter_dict.update(ms_text_splitter_dict)

@@ -1,7 +1,7 @@
 from fastchat.conversation import Conversation
 from server.model_workers.base import ApiModelWorker, ApiChatParams
 from fastchat import conversation as conv
-from configs.model_config import TEMPERATURE
+from configs import MS_HISTORY_PROMPT_TEMPLATES, logger, log_verbose
 from server.utils import get_model_worker_config, get_httpx_client
 import json
 from typing import List, Dict
@@ -33,36 +33,41 @@ class ClientRequest(BaseModel):
 
 
 def request_mindspore_api(
-    messages: List[Dict[str, str]],
-    temperature: float = TEMPERATURE,
+    params: ApiChatParams,
     model_name: str = "mindspore-api",
     version: str = None,
 ):
-    INF_URL = f'http://{MS_SERVER["host"]}:{MS_SERVER["port"]}'
+    messages: List[Dict[str, str]] = params.messages
+    temperature: float = params.temperature
+    root_url = f'http://{MS_SERVER["host"]}:{MS_SERVER["port"]}'
     config = get_model_worker_config(model_name)
     version = version or config.get("version")
     model_type = config.get("model_type")
 
-    url = f"{INF_URL}/models/{model_type}"
+    url = f"{root_url}/models/{model_type}"
     stream = True
     parameters = Parameters(
         do_sample=False,
         repetition_penalty=1.0,
         temperature=temperature,
         top_k=3,
-        top_p=1,
-        max_new_tokens=512,
+        top_p=params.top_p,
+        max_new_tokens=params.max_tokens,
         return_full_text=False,
     )
 
     # Concat history messages
-    content = "<s>"
+    history_prompt = MS_HISTORY_PROMPT_TEMPLATES[version]
+    content = history_prompt['instruction']
     for msg in messages:
         role = msg['role']
         if role == "user":
-            content += f"<|User|>:{msg['content']}<eoh>\n<|Bot|>:"
-        else:   # role == "assistant"
-            content += f"{msg['content']}\n"
+            content += history_prompt['user'].format(msg['content'])
+        elif role == "assistant":
+            content += history_prompt['assistant'].format(msg['content'])
+        else:
+            raise ValueError(f"Invalid role value: {role}")
+    content += history_prompt['post']
 
     payload = ClientRequest(
         inputs=content,
@@ -75,6 +80,12 @@ def request_mindspore_api(
     }
     cookies = None
     timeout = 30000
+
+    if log_verbose:
+        prefix = "MindSporeWorker"
+        logger.info(f"{prefix}:data: {payload.dict()}")
+        logger.info(f"{prefix}:url: {url}")
+        logger.info(f"{prefix}:headers: {headers}")
 
     with get_httpx_client() as client:
         if stream:
@@ -124,8 +135,7 @@ class MindSporeWorker(ApiModelWorker):
 
     def do_chat(self, params: ApiChatParams) -> Dict:
         full_text = ""
-        for resp in request_mindspore_api(messages=params.messages,
-                                          temperature=params.temperature,
+        for resp in request_mindspore_api(params=params,
                                           model_name=self.model_names[0]):
             if resp["event"] == "message":
                 full_text += resp["data"]
@@ -134,7 +144,8 @@ class MindSporeWorker(ApiModelWorker):
                     "text": full_text
                 }
             else:
+                self.logger.error(f"请求 MindSpore Serving 服务时发生错误：{resp}")
                 yield {
                     "error_code": 0,
-                    "text": "Error Message"
+                    "text": resp["detail"]
                 }
