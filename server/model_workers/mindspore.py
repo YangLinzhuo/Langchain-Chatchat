@@ -42,9 +42,9 @@ def request_mindspore_api(
     root_url = f'http://{MS_SERVER["host"]}:{MS_SERVER["port"]}'
     config = get_model_worker_config(model_name)
     version = version or config.get("version")
-    model_type = config.get("model_type")
+    route = config.get("route")
 
-    url = f"{root_url}/models/{model_type}"
+    url = f"{root_url}/models/{route}"
     stream = True
     parameters = Parameters(
         do_sample=False,
@@ -57,7 +57,9 @@ def request_mindspore_api(
     )
 
     # Concat history messages
-    history_prompt = MS_HISTORY_PROMPT_TEMPLATES[version]
+    history_prompt = MS_HISTORY_PROMPT_TEMPLATES.get(version, None)
+    if history_prompt is None:
+        history_prompt = MS_HISTORY_PROMPT_TEMPLATES['default']
     content = history_prompt['instruction']
     for msg in messages:
         role = msg['role']

@@ -48,19 +48,21 @@ LLM_DEVICE = MS_LLM_DEVICE
 global ONLINE_LLM_MODEL
 MS_ONLINE_LLM_MODEL = {
     "mindspore-api": {
-        "version": "internlm",
+        "version": "baichuan2",
         "api_key": "EMPTY",
         "secret_key": "",
         "provider": "MindSporeWorker",
-        "model_type": "internlm",
-        "model_path": "checkpoint_download/internlm/"    # used for load corresponding tokenizer
+        "model_type": "baichuan2",
+        "route": "llama2",
+        "model_path": "checkpoint_download/baichuan2/"    # used for load corresponding tokenizer
     },
 }
 
 # import tokenizer to register it into mindformers, should add path of mindformers to PYTHONPATH firstly
 from research.internlm.internlm_tokenizer import InternLMTokenizer
+from research.baichuan2.baichuan2_tokenizer import Baichuan2Tokenizer
 
-MS_TOKENIZERS = {'InternLMTokenizer': InternLMTokenizer}
+MS_TOKENIZERS = {'InternLMTokenizer': InternLMTokenizer, 'Baichuan2Tokenizer': Baichuan2Tokenizer}
 ONLINE_LLM_MODEL.update(MS_ONLINE_LLM_MODEL)
 
 
@@ -71,6 +73,11 @@ global PROMPT_TEMPLATES
 MS_PROMPT_TEMPLATES = {
     "llm_chat": {},
     "knowledge_base_chat": {
+        "ms-baichuan2":
+            '根据已知信息，简洁和专业的来回答问题。如果无法从中得到答案，请说 “根据已知信息无法回答该问题”，'
+            '不允许在答案中添加编造成分，答案请使用中文。\n'
+            '已知信息：{{ context }}\n'
+            '问题：{{ question }}\n',
         "ms-internlm":
             '根据已知信息，简洁和专业的来回答问题。如果无法从中得到答案，请说 “根据已知信息无法回答该问题”，'
             '不允许在答案中添加编造成分，答案请使用中文。\n'
@@ -111,6 +118,22 @@ MS_HISTORY_PROMPT_TEMPLATES = {
             "### Response:\nAssistant: {}\n<|EOT|>\n",
         "post": "### Response:\n"
     },
+    "baichuan2": {
+        "instruction":
+            "",
+        "user":
+            "<reserved_106>{}<reserved_107>",
+        "assistant":
+            "{}",
+        "post":
+            "",
+    },
+    "default": {
+        "instruction": "{}",
+        "user": "{}",
+        "assistant": "{}",
+        "post": "{}",
+    }
 }
 
 # ===============================

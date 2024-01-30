@@ -372,7 +372,7 @@ MS_ONLINE_LLM_MODEL = {
 ```
 
 其中 `MS_ONLINE_LLM_MODEL` 中配置的 `model_path` 用于切分文档时使用，建议填写后端大模型对应的配置文件及 tokenizer.model 所在文件夹
-路径，提升文档切分的效果。
+路径，提升文档切分的效果。可以直接使用转换 `MindIR` 格式的权重时所使用的配置文件及 tokenizer 文件。
 
 ## 服务配置
 
