@@ -129,10 +129,10 @@ MS_HISTORY_PROMPT_TEMPLATES = {
             "",
     },
     "default": {
-        "instruction": "{}",
+        "instruction": "",
         "user": "{}",
         "assistant": "{}",
-        "post": "{}",
+        "post": "",
     }
 }
 
