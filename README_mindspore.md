@@ -374,6 +374,21 @@ MS_ONLINE_LLM_MODEL = {
 其中 `MS_ONLINE_LLM_MODEL` 中配置的 `model_path` 用于切分文档时使用，建议填写后端大模型对应的配置文件及 tokenizer.model 所在文件夹
 路径，提升文档切分的效果。可以直接使用转换 `MindIR` 格式的权重时所使用的配置文件及 tokenizer 文件。
 
+修改 `configs/kb_config.py` 中的分词器配置：
+
+```python
+# TextSplitter配置项，如果你不明白其中的含义，就不要修改。
+text_splitter_dict = {
+    "ChineseRecursiveTextSplitter": {
+        "source": "mindformers",   # <---- modify here
+        "tokenizer_name_or_path": "",
+    },
+    ...
+}
+```
+
+修改 `source` 为 `mindformers` 使用对应后端大模型的 tokenizer。否则框架会使用默认的分词器，导致知识库匹配效果较差。
+
 ## 服务配置
 
 使用 `python copy_config_example.py` 生成 `configs` 下的配置文件。
