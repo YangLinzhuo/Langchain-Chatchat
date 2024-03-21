@@ -45,14 +45,14 @@ def request_mindspore_api(
     route = config.get("route")
 
     url = f"{root_url}/models/{route}"
-    stream = True
+    stream = config.get("stream", True)
     parameters = Parameters(
         do_sample=False,
         repetition_penalty=1.0,
         temperature=temperature,
         top_k=3,
         top_p=params.top_p,
-        max_new_tokens=params.max_tokens,
+        max_new_tokens=None,
         return_full_text=False,
     )
 
@@ -73,7 +73,7 @@ def request_mindspore_api(
 
     payload = ClientRequest(
         inputs=content,
-        stream=True,
+        stream=stream,
         parameters=parameters
     )
 
@@ -93,21 +93,11 @@ def request_mindspore_api(
         if stream:
             with client.stream('POST', url, json=payload.dict(), headers=headers,
                                cookies=cookies, timeout=timeout) as response:
-                for payload in response.iter_lines():
-                    if payload == b"\n":
-                        continue
-                    if payload.startswith("data:"):
-                        # Decode payload
-                        json_payload = json.loads(payload.lstrip("data:").rstrip("\n"))
-                        yield json_payload
+                for msg in response.iter_lines():
+                    msg_dict = json.loads(msg)
+                    yield msg_dict
         else:
-            response = client.post(
-                url,
-                json=payload.dict(),
-                headers=headers,
-                cookies=cookies,
-                timeout=timeout,
-            )
+            response = client.post(url, json=payload.dict(), headers=headers, cookies=cookies, timeout=timeout)
             yield response.json()
 
 
@@ -137,17 +127,15 @@ class MindSporeWorker(ApiModelWorker):
 
     def do_chat(self, params: ApiChatParams) -> Dict:
         full_text = ""
-        for resp in request_mindspore_api(params=params,
-                                          model_name=self.model_names[0]):
-            if resp["event"] == "message":
-                full_text += resp["data"]
+        for resp in request_mindspore_api(params=params, model_name=self.model_names[0]):
+            if "event" in resp:     # stream
+                full_text += resp["data"][0]["generated_text"]
                 yield {
                     "error_code": 0,
                     "text": full_text
                 }
             else:
-                self.logger.error(f"请求 MindSpore Serving 服务时发生错误：{resp}")
                 yield {
                     "error_code": 0,
-                    "text": resp["detail"]
+                    "text": resp["generated_text"]
                 }

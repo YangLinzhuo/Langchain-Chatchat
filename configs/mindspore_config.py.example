@@ -54,7 +54,8 @@ MS_ONLINE_LLM_MODEL = {
         "provider": "MindSporeWorker",
         "model_type": "baichuan2",
         "route": "llama2",
-        "model_path": "checkpoint_download/baichuan2/"    # used for load corresponding tokenizer
+        "model_path": "checkpoint_download/baichuan2/",    # used for load corresponding tokenizer
+        "stream": True
     },
 }
 
